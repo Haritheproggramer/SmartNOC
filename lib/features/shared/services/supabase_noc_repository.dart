@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -16,23 +18,57 @@ class SupabaseNocRepository implements NocRepository {
 
   final SupabaseClient client;
   final Uuid _uuid = const Uuid();
-
   static const String _applicationBucket = 'application-documents';
 
   @override
   Future<AppUserProfile?> getCurrentProfile() async {
-    // Wait for Supabase to restore the session from local storage.
-    // client.auth.currentUser is null until the first auth state change fires.
-    final session = client.auth.currentSession;
-    if (session == null) {
-      // No stored session – user is not logged in
+    // On Flutter Web, Supabase restores the session from localStorage
+    // asynchronously after initialize(). We must wait for the first
+    // onAuthStateChange event before reading currentUser, otherwise we
+    // always get null even when the user is actually logged in.
+    try {
+      final completer = Completer<User?>();
+
+      // Give the auth state stream up to 6 seconds to emit the initial event
+      late StreamSubscription<AuthState> sub;
+      sub = client.auth.onAuthStateChange.timeout(
+        const Duration(seconds: 6),
+        onTimeout: (sink) {
+          // No auth state emitted – treat as signed out
+          if (!completer.isCompleted) completer.complete(null);
+          sink.close();
+        },
+      ).listen(
+        (authState) {
+          if (!completer.isCompleted) {
+            completer.complete(authState.session?.user);
+          }
+          sub.cancel();
+        },
+        onError: (Object error) {
+          if (!completer.isCompleted) completer.complete(null);
+          sub.cancel();
+        },
+        cancelOnError: true,
+      );
+
+      final user = await completer.future;
+      if (user == null) {
+        return null;
+      }
+      return _getProfileSafely(user.id);
+    } catch (_) {
       return null;
     }
-    final authUser = client.auth.currentUser;
-    if (authUser == null) {
+  }
+
+  /// Fetch profile by ID, returning null instead of throwing if anything fails.
+  Future<AppUserProfile?> _getProfileSafely(String userId) async {
+    try {
+      return await getProfileById(userId);
+    } catch (_) {
       return null;
     }
-    return getProfileById(authUser.id);
   }
 
   @override
@@ -54,7 +90,7 @@ class SupabaseNocRepository implements NocRepository {
     required String password,
   }) async {
     await client.auth.signInWithPassword(email: email.trim(), password: password);
-    final profile = await getCurrentProfile();
+    final profile = await _getProfileSafely(client.auth.currentUser!.id);
     if (profile == null) {
       throw StateError('Profile not found after login.');
     }
@@ -94,7 +130,7 @@ class SupabaseNocRepository implements NocRepository {
       );
     }
 
-    final profile = await getCurrentProfile();
+    final profile = await _getProfileSafely(authUser.id);
     if (profile != null) {
       return AuthResult(profile: profile);
     }
@@ -304,7 +340,6 @@ class SupabaseNocRepository implements NocRepository {
     }).eq('id', applicationId);
 
     await client.from('notifications').insert({
-      'id': _uuid.v4(),
       'user_id': application.userId,
       'application_id': application.id,
       'title': '${status.label} update',
