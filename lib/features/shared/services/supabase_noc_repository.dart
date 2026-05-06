@@ -25,30 +25,26 @@ class SupabaseNocRepository implements NocRepository {
     // On Flutter Web, Supabase restores the session from localStorage
     // asynchronously after initialize(). We must wait for the first
     // onAuthStateChange event before reading currentUser, otherwise we
-    // always get null even when the user is actually logged in.
+    // may get null even when the user is actually logged in.
     try {
       final completer = Completer<User?>();
+      StreamSubscription<AuthState>? sub;
+      Timer? timer;
 
-      // Give the auth state stream up to 6 seconds to emit the initial event
-      late StreamSubscription<AuthState> sub;
-      sub = client.auth.onAuthStateChange.timeout(
-        const Duration(seconds: 6),
-        onTimeout: (sink) {
-          // No auth state emitted – treat as signed out
-          if (!completer.isCompleted) completer.complete(null);
-          sink.close();
-        },
-      ).listen(
-        (authState) {
-          if (!completer.isCompleted) {
-            completer.complete(authState.session?.user);
-          }
-          sub.cancel();
-        },
-        onError: (Object error) {
-          if (!completer.isCompleted) completer.complete(null);
-          sub.cancel();
-        },
+      void complete(User? user) {
+        if (!completer.isCompleted) {
+          completer.complete(user);
+          timer?.cancel();
+          sub?.cancel();
+        }
+      }
+
+      // Safety: resolve after 6 seconds no matter what
+      timer = Timer(const Duration(seconds: 6), () => complete(null));
+
+      sub = client.auth.onAuthStateChange.listen(
+        (authState) => complete(authState.session?.user),
+        onError: (_) => complete(null),
         cancelOnError: true,
       );
 
@@ -73,15 +69,20 @@ class SupabaseNocRepository implements NocRepository {
 
   @override
   Future<AppUserProfile?> getProfileById(String profileId) async {
-    final row = await client
-        .from('profiles')
-        .select()
-        .eq('id', profileId)
-        .maybeSingle();
-    if (row == null) {
+    try {
+      final row = await client
+          .from('profiles')
+          .select()
+          .eq('id', profileId)
+          .maybeSingle();
+      if (row == null) {
+        return null;
+      }
+      return AppUserProfile.fromMap(Map<String, dynamic>.from(row));
+    } catch (_) {
+      // Table may not exist yet or RLS may block — treat as no profile
       return null;
     }
-    return AppUserProfile.fromMap(Map<String, dynamic>.from(row));
   }
 
   @override
@@ -90,9 +91,13 @@ class SupabaseNocRepository implements NocRepository {
     required String password,
   }) async {
     await client.auth.signInWithPassword(email: email.trim(), password: password);
-    final profile = await _getProfileSafely(client.auth.currentUser!.id);
+    final uid = client.auth.currentUser?.id;
+    if (uid == null) {
+      throw StateError('Sign-in succeeded but no user session found.');
+    }
+    final profile = await _getProfileSafely(uid);
     if (profile == null) {
-      throw StateError('Profile not found after login.');
+      throw StateError('Profile not found. Please contact support.');
     }
     return AuthResult(profile: profile);
   }
