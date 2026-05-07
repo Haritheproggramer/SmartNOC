@@ -112,11 +112,6 @@ class OfficerDashboardScreen extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 28),
-                  const AppSectionHeader(
-                    title: 'Recent submissions',
-                    subtitle: 'Latest applications requiring review and follow-up.',
-                  ),
-                  const SizedBox(height: 16),
                   if (applicationsSnapshot.connectionState == ConnectionState.waiting)
                     const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
                   else if (latest.isEmpty)

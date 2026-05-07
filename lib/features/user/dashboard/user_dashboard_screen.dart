@@ -110,11 +110,6 @@ class UserDashboardScreen extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 28),
-                  const AppSectionHeader(
-                    title: 'Recent applications',
-                    subtitle: 'The latest submissions from your account.',
-                  ),
-                  const SizedBox(height: 16),
                   if (applicationsSnapshot.connectionState == ConnectionState.waiting)
                     const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
                   else if (recent.isEmpty)
