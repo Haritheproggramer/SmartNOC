@@ -32,13 +32,26 @@ class AuthController extends ChangeNotifier {
 
   Future<void> _bootstrap() async {
     try {
+      // Give the repository up to 10 s. The SupabaseNocRepository already has
+      // its own 6-second inner timer that resolves to null (no session) when
+      // there is no active user. We use a slightly longer outer timeout so
+      // we don't race with it and accidentally surface an error.
       _currentProfile = await _repository.getCurrentProfile().timeout(
-        const Duration(seconds: 8),
+        const Duration(seconds: 10),
         onTimeout: () {
-          // Timed out – treat as unauthenticated so router redirects to /login
+          // Pure timeout — no network error, just no session. Do NOT set
+          // _bootError; the router will redirect to /login because
+          // isAuthenticated == false.
           return null;
         },
       );
+      // Receiving null here is NORMAL (user is not signed in).
+      // Do NOT treat it as an error.
+    } on Exception catch (error) {
+      // Only set _bootError for real exceptions (network failures, bad config,
+      // etc.) — never for a missing session.
+      _bootError = error.toString();
+      _currentProfile = null;
     } catch (error) {
       _bootError = error.toString();
       _currentProfile = null;

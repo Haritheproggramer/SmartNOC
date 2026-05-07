@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_config.dart';
@@ -17,7 +18,10 @@ class BootScreen extends StatefulWidget {
 class _BootScreenState extends State<BootScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
-  bool _forcedTimeout = false;
+
+  /// Falls back to /login after 12 s — only if bootstrap hasn't
+  /// completed and navigated us away first. This is purely a safety net
+  /// so users are never stuck on the loading screen indefinitely.
   Timer? _safetyTimer;
 
   @override
@@ -28,10 +32,12 @@ class _BootScreenState extends State<BootScreen>
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
-    // Safety net: if still on boot screen after 10 s, show a timeout error
-    _safetyTimer = Timer(const Duration(seconds: 10), () {
+    // Safety net: if we are still on /loading after 12 s, force-navigate
+    // to /login. This covers the case where the auth stream fires but the
+    // GoRouter redirect somehow doesn't trigger a route change.
+    _safetyTimer = Timer(const Duration(seconds: 12), () {
       if (mounted) {
-        setState(() => _forcedTimeout = true);
+        context.go('/login');
       }
     });
   }
@@ -46,15 +52,19 @@ class _BootScreenState extends State<BootScreen>
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final auth = context.watch<AuthController>();
 
     // ── Config-missing error screen ──────────────────────────────────────────
     if (!AppConfig.hasSupabaseConfig) {
       return _ConfigErrorScreen(colors: colors);
     }
 
-    // ── Safety-timeout error screen ──────────────────────────────────────────
-    if (_forcedTimeout) {
-      return _TimeoutErrorScreen(colors: colors);
+    // ── Real network / config failure (bootError is set after bootstrap) ─────
+    // Only show the timeout screen when bootstrap has finished AND there is an
+    // explicit error message. A missing session (user logged out) is NOT an
+    // error and is handled by the router redirect to /login.
+    if (!auth.isBootstrapping && auth.bootError != null) {
+      return _TimeoutErrorScreen(colors: colors, error: auth.bootError!);
     }
 
     // ── Normal loading splash ────────────────────────────────────────────────
@@ -70,16 +80,23 @@ class _BootScreenState extends State<BootScreen>
                 opacity: 0.6 + 0.4 * _pulseController.value,
                 child: child,
               ),
-              child: const SizedBox(
+              child: SizedBox(
                 width: 56,
                 height: 56,
-                child: CircularProgressIndicator(strokeWidth: 4),
+                child: CircularProgressIndicator(
+                  strokeWidth: 4,
+                  color: colors.accent,
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Loading SmartNOC',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: colors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -207,15 +224,14 @@ class _EnvRow extends StatelessWidget {
   }
 }
 
-// ── Timeout error screen ────────────────────────────────────────────────────────
+// ── Real timeout / network error screen ────────────────────────────────────────
 class _TimeoutErrorScreen extends StatelessWidget {
-  const _TimeoutErrorScreen({required this.colors});
+  const _TimeoutErrorScreen({required this.colors, required this.error});
   final AppPalette colors;
+  final String error;
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthController>();
-
     return Scaffold(
       backgroundColor: colors.background,
       body: Center(
@@ -231,7 +247,7 @@ class _TimeoutErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Connection Timeout',
+                'Connection Error',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -241,44 +257,52 @@ class _TimeoutErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Unable to connect to SmartNOC servers.\n'
+                'Unable to reach SmartNOC servers.\n'
                 'Please check your internet connection and try again.',
                 style: TextStyle(color: colors.textSecondary, height: 1.5),
                 textAlign: TextAlign.center,
               ),
-              if (auth.bootError != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    auth.bootError!,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: colors.textSecondary,
-                    ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.red.withValues(alpha: 0.3),
                   ),
                 ),
-              ],
+                child: Text(
+                  error,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: () {
-                  // Retry: re-create the auth controller bootstrap
-                  // For now navigate to /login as a fallback
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false,
-                  );
-                },
+              // High-contrast button — explicitly white-on-blue so it's
+              // visible in both light and dark themes.
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () => context.go('/login'),
                 icon: const Icon(Icons.arrow_forward),
-                label: const Text('Go to Login'),
+                label: const Text(
+                  'Go to Login',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
               ),
             ],
           ),
