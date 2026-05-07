@@ -78,7 +78,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<void> signUp({
+  Future<AuthResult> signUp({
     required String name,
     required String email,
     required String password,
@@ -92,8 +92,9 @@ class AuthController extends ChangeNotifier {
         password: password,
         role: role,
       );
-      _currentProfile = result.profile;
+      _currentProfile = result.isAuthenticated ? result.profile : null;
       _errorMessage = null;
+      return result;
     } catch (error) {
       _errorMessage = error.toString();
       rethrow;

@@ -315,7 +315,7 @@ class LocalNocRepository implements NocRepository {
     _currentUserId = profile.id;
     await _save();
     _emitProfileUpdate();
-    return AuthResult(profile: profile);
+    return AuthResult(profile: profile, isAuthenticated: true);
   }
 
   @override
@@ -343,7 +343,7 @@ class LocalNocRepository implements NocRepository {
     _currentUserId = profile.id;
     await _save();
     _emitProfileUpdate();
-    return AuthResult(profile: profile);
+    return AuthResult(profile: profile, isAuthenticated: true);
   }
 
   @override

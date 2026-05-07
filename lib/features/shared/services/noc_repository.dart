@@ -9,9 +9,10 @@ import '../models/application_record.dart';
 import '../models/dashboard_stats.dart';
 
 class AuthResult {
-  const AuthResult({required this.profile});
+  const AuthResult({required this.profile, required this.isAuthenticated});
 
   final AppUserProfile profile;
+  final bool isAuthenticated;
 }
 
 abstract class NocRepository {

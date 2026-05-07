@@ -95,11 +95,8 @@ class SupabaseNocRepository implements NocRepository {
     if (uid == null) {
       throw StateError('Sign-in succeeded but no user session found.');
     }
-    final profile = await _getProfileSafely(uid);
-    if (profile == null) {
-      throw StateError('Profile not found. Please contact support.');
-    }
-    return AuthResult(profile: profile);
+    final profile = await _ensureProfileForCurrentUser(uid);
+    return AuthResult(profile: profile, isAuthenticated: true);
   }
 
   @override
@@ -109,46 +106,113 @@ class SupabaseNocRepository implements NocRepository {
     required String password,
     required AppRole role,
   }) async {
-    final response = await client.auth.signUp(
-      email: email.trim(),
-      password: password,
-      data: {'name': name.trim(), 'role': role.name},
-    );
+    try {
+      final response = await client.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {'name': name.trim(), 'role': role.name},
+      );
 
-    final authUser = response.user ?? client.auth.currentUser;
-    if (authUser == null) {
-      throw StateError('Unable to create account.');
+      final authUser = response.user ?? client.auth.currentUser;
+      if (authUser == null) {
+        throw StateError('Unable to create account.');
+      }
+
+      if (response.session != null) {
+        final profile = await _upsertProfileForUser(
+          authUser,
+          fallbackName: name.trim(),
+          fallbackRole: role,
+        );
+        return AuthResult(profile: profile, isAuthenticated: true);
+      }
+
+      return AuthResult(
+        profile: AppUserProfile(
+          id: authUser.id,
+          name: _metadataName(authUser, fallbackName: name.trim()),
+          email: (authUser.email ?? email.trim()).toLowerCase(),
+          role: _metadataRole(authUser, fallbackRole: role),
+          createdAt: DateTime.now(),
+        ),
+        isAuthenticated: false,
+      );
+    } catch (error) {
+      if (_isEmailRateLimit(error)) {
+        throw StateError(
+          'A verification email was sent recently. Check your inbox or wait a moment before trying again.',
+        );
+      }
+      rethrow;
     }
+  }
+
+  String _metadataName(User authUser, {required String fallbackName}) {
+    final metadata = authUser.userMetadata;
+    final rawName = metadata == null ? null : metadata['name'];
+    final name = rawName is String ? rawName.trim() : '';
+    return name.isEmpty ? fallbackName : name;
+  }
+
+  AppRole _metadataRole(User authUser, {required AppRole fallbackRole}) {
+    final metadata = authUser.userMetadata;
+    final rawRole = metadata == null ? null : metadata['role'];
+    if (rawRole is String) {
+      return AppRoleX.fromString(rawRole);
+    }
+    return fallbackRole;
+  }
+
+  Future<AppUserProfile> _upsertProfileForUser(
+    User authUser, {
+    required String fallbackName,
+    required AppRole fallbackRole,
+  }) async {
+    final name = _metadataName(authUser, fallbackName: fallbackName);
+    final role = _metadataRole(authUser, fallbackRole: fallbackRole);
+    final email = (authUser.email ?? '').trim().toLowerCase();
 
     await client.from('profiles').upsert({
       'id': authUser.id,
-      'name': name.trim(),
-      'email': email.trim().toLowerCase(),
+      'name': name,
+      'email': email,
       'role': role.name,
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    if (response.session == null) {
-      await client.auth.signInWithPassword(
-        email: email.trim(),
-        password: password,
+    final profile = await _getProfileSafely(authUser.id);
+    return profile ?? AppUserProfile(
+      id: authUser.id,
+      name: name,
+      email: email,
+      role: role,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  Future<AppUserProfile> _ensureProfileForCurrentUser(String userId) async {
+    final existing = await _getProfileSafely(userId);
+    if (existing != null) {
+      return existing;
+    }
+
+    final authUser = client.auth.currentUser;
+    if (authUser != null && authUser.id == userId) {
+      return _upsertProfileForUser(
+        authUser,
+        fallbackName: authUser.email?.split('@').first ?? 'NOC User',
+        fallbackRole: AppRole.user,
       );
     }
 
-    final profile = await _getProfileSafely(authUser.id);
-    if (profile != null) {
-      return AuthResult(profile: profile);
-    }
+    throw StateError('Profile not found. Please contact support.');
+  }
 
-    return AuthResult(
-      profile: AppUserProfile(
-        id: authUser.id,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        role: role,
-        createdAt: DateTime.now(),
-      ),
-    );
+  bool _isEmailRateLimit(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('over_email_send_rate_limit') ||
+        message.contains('email_send_rate_limit') ||
+        message.contains('429');
   }
 
   @override

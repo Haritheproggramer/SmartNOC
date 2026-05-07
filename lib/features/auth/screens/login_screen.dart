@@ -71,7 +71,17 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      context.go(auth.role?.routeBase ?? '/loading');
+      if (_mode == AuthScreenMode.login || auth.isAuthenticated) {
+        context.go(auth.role?.routeBase ?? '/loading');
+        return;
+      }
+
+      setState(() => _mode = AuthScreenMode.login);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created. Check your email to verify it, then sign in.'),
+        ),
+      );
     } catch (error) {
       if (!mounted) {
         return;

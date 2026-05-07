@@ -46,3 +46,4 @@ app.*.map.json
 
 # Local runtime config
 env/*.local.json
+.vercel
