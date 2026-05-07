@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_empty_state.dart';
-import '../../../core/widgets/app_section_header.dart';
 import '../../../features/auth/services/auth_controller.dart';
 import '../../../features/shared/models/app_notification.dart';
 import '../../../features/shared/services/noc_repository.dart';
@@ -34,11 +33,7 @@ class UserNotificationsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppSectionHeader(
-                title: 'Notifications',
-                subtitle: 'Realtime updates from officer actions show up here immediately.',
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
               else if (notifications.isEmpty)

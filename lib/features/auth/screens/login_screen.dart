@@ -76,10 +76,13 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      setState(() => _mode = AuthScreenMode.login);
+      setState(() {
+        _mode = AuthScreenMode.login;
+        _passwordController.clear();
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account created. Check your email to verify it, then sign in.'),
+          content: Text('Account created. You can sign in now.'),
         ),
       );
     } catch (error) {
@@ -87,9 +90,33 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('StateError: ', ''))),
+        SnackBar(content: Text(_friendlyAuthMessage(error))),
       );
     }
+  }
+
+  String _friendlyAuthMessage(Object error) {
+    final message = error.toString().replaceFirst('StateError: ', '').toLowerCase();
+
+    if (message.contains('invalid login credentials') ||
+        message.contains('invalid email or password') ||
+        message.contains('wrong password')) {
+      return 'Invalid email or password.';
+    }
+
+    if (message.contains('already exists') ||
+        message.contains('duplicate') ||
+        message.contains('user already registered')) {
+      return 'An account already exists for that email.';
+    }
+
+    if (message.contains('verify') ||
+        message.contains('confirmation') ||
+        message.contains('confirmed')) {
+      return 'Account created. You can sign in now.';
+    }
+
+    return 'Something went wrong. Please try again.';
   }
 
   @override

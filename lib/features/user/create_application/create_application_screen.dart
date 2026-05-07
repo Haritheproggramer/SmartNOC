@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../features/auth/services/auth_controller.dart';
 import '../../../features/shared/models/app_priority.dart';
@@ -157,11 +156,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppSectionHeader(
-            title: 'Create application',
-            subtitle: 'Submit a new fire NOC request with automatic priority detection.',
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 920),
@@ -173,7 +168,7 @@ class _CreateApplicationScreenState extends State<CreateApplicationScreen> {
                     children: [
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          final wide = constraints.maxWidth >= 860;
+                          final wide = constraints.maxWidth > 1100;
                           final fields = Column(
                             children: [
                               AppTextField(

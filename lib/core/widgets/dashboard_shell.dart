@@ -50,8 +50,12 @@ class DashboardShell extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 1040;
-        final navWidth = isWide ? 300.0 : 0.0;
+        // Responsive breakpoints
+        // mobile: <700, tablet: 700-1100, desktop: >1100
+        final width = constraints.maxWidth;
+        final isDesktop = width > 1100;
+        final isMobile = width < 700;
+        final navWidth = isDesktop ? 300.0 : 0.0;
 
         final shellBody = Column(
           children: [
@@ -76,7 +80,7 @@ class DashboardShell extends StatelessWidget {
           ],
         );
 
-        if (isWide) {
+        if (isDesktop) {
           return Scaffold(
             backgroundColor: colors.background,
             body: SafeArea(
@@ -112,6 +116,25 @@ class DashboardShell extends StatelessWidget {
                                 .toList(),
                           ),
                         ),
+                        // Fixed actions at bottom of sidebar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              IconButton(
+                                tooltip: 'Collapse',
+                                onPressed: () {},
+                                icon: const Icon(Icons.chevron_left_rounded),
+                              ),
+                              IconButton(
+                                tooltip: 'Logout',
+                                onPressed: onLogout,
+                                icon: const Icon(Icons.logout_rounded),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -121,23 +144,31 @@ class DashboardShell extends StatelessWidget {
             ),
           );
         }
+        // Mobile/tablet: show bottom nav and ensure content has bottom padding
+        final bottomNav = NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+          destinations: destinations
+              .map(
+                (destination) => NavigationDestination(
+                  icon: Icon(destination.icon),
+                  selectedIcon: Icon(destination.icon, color: colors.accent),
+                  label: destination.label,
+                ),
+              )
+              .toList(),
+        );
 
         return Scaffold(
           backgroundColor: colors.background,
-          body: SafeArea(child: shellBody),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onDestinationSelected,
-            destinations: destinations
-                .map(
-                  (destination) => NavigationDestination(
-                    icon: Icon(destination.icon),
-                    selectedIcon: Icon(destination.icon, color: colors.accent),
-                    label: destination.label,
-                  ),
-                )
-                .toList(),
+          body: SafeArea(
+            child: Padding(
+              // Add bottom padding so content doesn't hide behind bottom nav on mobile
+              padding: EdgeInsets.only(bottom: isMobile ? 88 : 20),
+              child: shellBody,
+            ),
           ),
+          bottomNavigationBar: bottomNav,
         );
       },
     );
@@ -223,7 +254,8 @@ class _TopBar extends StatelessWidget {
     final themeController = context.watch<ThemeController>();
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 1000;
+        // compact on small screens (mobile)
+        final compact = constraints.maxWidth < 700;
         final searchField = TextField(
           readOnly: true,
           decoration: InputDecoration(
@@ -300,23 +332,32 @@ class _TopBar extends StatelessWidget {
         );
 
         if (compact) {
+          // Mobile: show title & compact trailing; hide large search field
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(color: colors.textSecondary),
-              ),
-              const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: searchField),
-                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(subtitle, style: TextStyle(color: colors.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  // compact search icon
+                  IconButton(
+                    tooltip: 'Search',
+                    onPressed: () {},
+                    icon: const Icon(Icons.search),
+                  ),
+                  const SizedBox(width: 4),
                   trailing,
                 ],
               ),

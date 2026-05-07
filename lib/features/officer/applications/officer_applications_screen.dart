@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_empty_state.dart';
-import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../features/shared/models/app_priority.dart';
 import '../../../features/shared/models/app_status.dart';
@@ -58,11 +57,7 @@ class _OfficerApplicationsScreenState extends State<OfficerApplicationsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppSectionHeader(
-                title: 'Applications',
-                subtitle: 'Use search, filter chips, and priority badges to triage work quickly.',
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               AppCard(
                 child: Column(
                   children: [

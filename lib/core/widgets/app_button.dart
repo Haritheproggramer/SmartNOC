@@ -28,7 +28,11 @@ class AppButton extends StatelessWidget {
         ? OutlinedButton.icon(
             onPressed: onPressed,
             icon: Icon(icon, size: 18),
-            label: Text(label),
+            label: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: foreground,
               backgroundColor: colors.surfaceSoft,
@@ -40,7 +44,11 @@ class AppButton extends StatelessWidget {
         : ElevatedButton.icon(
             onPressed: onPressed,
             icon: Icon(icon, size: 18),
-            label: Text(label),
+            label: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: danger ? colors.danger : colors.accent,
               minimumSize: const Size.fromHeight(52),

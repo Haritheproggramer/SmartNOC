@@ -45,26 +45,11 @@ class UserDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppSectionHeader(
-                    title: 'Welcome back, ${profile.name.split(' ').first}',
-                    subtitle: 'Your applications, alerts, and progress at a glance.',
-                    action: AppButton(
-                      label: 'New Application',
-                      icon: Icons.add_circle_outline,
-                      onPressed: () => context.go('/user/create'),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final columns = width >= 1280
-                          ? 5
-                          : width >= 980
-                              ? 3
-                              : width >= 640
-                                  ? 2
-                                  : 1;
+                        final width = constraints.maxWidth;
+                        final columns = width > 1100 ? 4 : (width >= 700 ? 2 : 1);
                       final itemWidth = (width - (columns - 1) * 16) / columns;
                       return Wrap(
                         spacing: 16,
@@ -144,7 +129,7 @@ class UserDashboardScreen extends StatelessWidget {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final width = constraints.maxWidth;
-                        final columns = width >= 1100 ? 3 : width >= 720 ? 2 : 1;
+                        final columns = width > 1100 ? 4 : (width >= 700 ? 2 : 1);
                         final itemWidth = (width - (columns - 1) * 16) / columns;
                         return Wrap(
                           spacing: 16,

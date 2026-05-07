@@ -7,7 +7,6 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_empty_state.dart';
-import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../features/auth/services/auth_controller.dart';
 import '../../../features/shared/models/app_status.dart';
@@ -59,11 +58,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppSectionHeader(
-                title: 'My applications',
-                subtitle: 'Search applications, apply filters, and review details anytime.',
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               AppCard(
                 child: Column(
                   children: [

@@ -8,7 +8,6 @@ import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_empty_state.dart';
-import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../features/shared/models/app_status.dart';
 import '../../../features/shared/models/application_record.dart';
@@ -99,11 +98,7 @@ class _ApplicationReviewScreenState extends State<ApplicationReviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppSectionHeader(
-                title: application.title,
-                subtitle: 'Review the applicant, uploaded files, and processing history before taking action.',
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth >= 980;

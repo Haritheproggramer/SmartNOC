@@ -43,26 +43,20 @@ class OfficerDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppSectionHeader(
-                    title: 'Officer dashboard',
-                    subtitle: 'Monitor workload, review priorities, and keep approvals moving.',
-                    action: AppButton(
+                  // Action only - title is provided by the shell
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AppButton(
                       label: 'View all applications',
                       icon: Icons.fact_check_outlined,
                       onPressed: () => context.go('/officer/applications'),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final columns = width >= 1280
-                          ? 5
-                          : width >= 980
-                              ? 3
-                              : width >= 640
-                                  ? 2
-                                  : 1;
+                        final width = constraints.maxWidth;
+                        final columns = width > 1100 ? 4 : (width >= 700 ? 2 : 1);
                       final itemWidth = (width - (columns - 1) * 16) / columns;
                       return Wrap(
                         spacing: 16,
