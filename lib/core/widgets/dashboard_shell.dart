@@ -10,6 +10,7 @@ class DashboardShell extends StatelessWidget {
     super.key,
     required this.role,
     required this.selectedIndex,
+    this.showShellHeader = true,
     required this.onDestinationSelected,
     required this.child,
     required this.title,
@@ -32,6 +33,7 @@ class DashboardShell extends StatelessWidget {
   final VoidCallback onLogout;
   final VoidCallback? onNotificationTap;
   final int notificationCount;
+  final bool showShellHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -55,21 +57,22 @@ class DashboardShell extends StatelessWidget {
 
         final shellBody = Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: _TopBar(
-                title: title,
-                subtitle: subtitle,
-                profileName: profileName,
-                profileInitials: profileInitials,
-                onLogout: onLogout,
-                onNotificationTap: onNotificationTap,
-                notificationCount: notificationCount,
+            if (showShellHeader)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: _TopBar(
+                  title: title,
+                  subtitle: subtitle,
+                  profileName: profileName,
+                  profileInitials: profileInitials,
+                  onLogout: onLogout,
+                  onNotificationTap: onNotificationTap,
+                  notificationCount: notificationCount,
+                ),
               ),
-            ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
                 child: child,
               ),
             ),
@@ -305,18 +308,32 @@ class _TopBar extends StatelessWidget {
             children: [
               Text(
                 title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                softWrap: true,
                 style: TextStyle(color: colors.textSecondary),
               ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(child: searchField),
-                  const SizedBox(width: 12),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: 140,
+                      maxWidth: constraints.maxWidth - 120,
+                    ),
+                    child: searchField,
+                  ),
                   trailing,
                 ],
               ),

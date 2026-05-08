@@ -107,6 +107,7 @@ class _UserRoute extends StatelessWidget {
     final user = auth.currentProfile;
     return DashboardShell(
       role: AppRole.user,
+      showShellHeader: false,
       selectedIndex: index,
       title: switch (index) {
         0 => 'User Dashboard',
